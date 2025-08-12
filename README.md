@@ -1,244 +1,248 @@
-# How to Run a Node in Cysic
+# Cysic Network Node Setup Guide
 
-*Credit: Rachit Yadav*
+**Authored by Rachit Yadav**
+
+> This guide explains how to run Prover, Verifier, and Validator nodes on the Cysic Network (Testnet Phase 3). Follow each section carefully for a smooth deployment.
 
 ---
 
-## Overview
+## Table of Contents
 
-This guide shows a practical, end-to-end way to run a Cysic blockchain node (full node / validator). It covers system requirements, installation, initialization, syncing, running as a service, validator setup, maintenance, and troubleshooting.
+1. [Prerequisites](#prerequisites)
+2. [Prover Node Setup](#prover-node-setup)
+3. [Verifier Node Setup](#verifier-node-setup)
+4. [Validator Node Setup](#validator-node-setup)
+5. [Troubleshooting & Maintenance](#troubleshooting--maintenance)
+6. [Credits](#credits)
 
 ---
 
 ## 1. Prerequisites
 
-### Hardware (recommended)
+Before you begin, ensure you have:
 
-* CPU: 4–8 cores (8+ preferred for validators)
-* RAM: 16 GB+
-* Disk: 500 GB SSD (NVMe preferred)
-* Network: Stable internet (>= 100 Mbps recommended)
-* OS: Linux (Ubuntu 20.04+ recommended)
-
-### Software
-
-* `git`, `curl`, `jq`, `build-essential`
-* Go (1.19+)
-* `systemd` (for service)
+* Cysic Phase3 invite code and a wallet address
+* Access to a Linux / macOS / Windows system (with sudo/admin privileges where required)
+* Stable internet connection
+* Basic familiarity with the terminal (bash / PowerShell)
 
 ---
 
-## 2. System preparation
+## 2. Prover Node Setup
+
+Prover nodes generate zero-knowledge proofs and earn credits. They require high hardware specs and some DevOps experience.
+
+### Hardware Requirements
+
+* **Scroll Proof (highly demanding):** Ubuntu, **≥256 GB RAM**, 32-core CPU, GPU ≥20 GB VRAM
+* **ETH Proof (less than Scroll):** Ubuntu, **≥32 GB RAM**, 8-core CPU, GPU ≥16 GB VRAM
+
+> Prover nodes are resource intensive — ensure proper cooling, UPS, and monitoring.
+
+### Step-by-step
+
+1. **Connect Wallet**
+
+   * Visit the Cysic Phase3 website, join Testnet Phase 3, connect your wallet, sign the message, and enter your invite code.
+   * Copy your wallet address (used for rewards).
+
+2. **Get RPC Endpoint (for ETH proof)**
+
+   * Register at a provider (e.g., Alchemy), create a new app, and copy the RPC URL for later use.
+
+3. **Download & run setup script (Linux example)**
 
 ```bash
-sudo apt update && sudo apt upgrade -y
-sudo apt install -y git curl jq build-essential
+# Replace 0x-Fill-in-your-reward-address-here with your wallet address
+curl -L https://github.com/cysic-labs/cysic-phase3/releases/download/v1.0.0/setup_linux.sh \
+  > ~/setup_linux.sh && bash ~/setup_linux.sh 0x-Fill-in-your-reward-address-here
 ```
 
-Set locale and limits (optional but recommended):
+* During setup, if prompted about `eth_proof` dependencies, choose `y` to install.
+
+4. **Start the Prover**
 
 ```bash
-sudo tee -a /etc/security/limits.conf <<'EOF'
-* soft nofile 65536
-* hard nofile 65536
-EOF
+cd ~/cysic-prover/ && bash start.sh
 ```
+
+* Wait several minutes. A log line like `send heartbeat to server` indicates a successful launch.
+
+5. **Backup Mnemonic**
+
+* Your mnemonic is stored at `~/.cysic/assets/`. Back it up securely (offline preferred).
 
 ---
 
-## 3. Install Go
+## 3. Verifier Node Setup
+
+Verifier nodes validate proofs produced by Prover nodes. Hardware needs are modest compared to Provers.
+
+### Hardware Requirements
+
+* Minimal — a modern Linux, macOS, or Windows machine is sufficient.
+
+### Step-by-step
+
+1. **Connect Wallet**
+
+   * Same as Prover (connect, sign, enter invite code, copy wallet address).
+
+2. **Download & run setup script**
+
+**Linux**
 
 ```bash
-# change version if needed
-GO_VER=1.19.5
-wget https://golang.org/dl/go${GO_VER}.linux-amd64.tar.gz
-sudo rm -rf /usr/local/go
-sudo tar -C /usr/local -xzf go${GO_VER}.linux-amd64.tar.gz
-echo 'export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin' >> ~/.profile
-source ~/.profile
-go version
+# Replace 0x-Fill-in-your-reward-address-here with your wallet address
+curl -L https://github.com/cysic-labs/cysic-phase3/releases/download/v1.0.0/setup_linux.sh \
+  > ~/setup_linux.sh && bash ~/setup_linux.sh 0x-Fill-in-your-reward-address-here
+cd ~/cysic-verifier/ && bash start.sh
 ```
 
----
-
-## 4. Clone and build Cysic
+**macOS**
 
 ```bash
-# choose a working dir
-cd $HOME
-git clone https://github.com/Cysic-project/cysic-chain.git
-cd cysic-chain
-make install
-# or follow repo's build command if different (eg: go build ./...)
+curl -L https://github.com/cysic-labs/cysic-phase3/releases/download/v1.0.0/setup_mac.sh \
+  > ~/setup_mac.sh && bash ~/setup_mac.sh 0x-Fill-in-your-reward-address-here
+cd ~/cysic-verifier/ && bash start.sh
 ```
 
-After `make install`, verify binaries like `cysicd` (daemon) and `cysiccli` exist in `$HOME/go/bin` or `/usr/local/bin`.
+**Windows (PowerShell)**
+
+```powershell
+cd $env:USERPROFILE
+Invoke-WebRequest -Uri "https://github.com/cysic-labs/cysic-phase3/releases/download/v1.0.0/setup.ps1" -OutFile "setup_win.ps1"
+.\setup_win.ps1 -CLAIM_REWARD_ADDRESS "0x-Fill-in-your-reward-address-here"
+cd $env:USERPROFILE\cysic-verifier
+.\start.ps1
+```
+
+* After a few minutes, look for `send heartbeat to server` to confirm the verifier is running.
+
+3. **Backup Mnemonic**
+
+* Verifier mnemonic typically at `~/.cysic/keys/` — back it up securely.
 
 ---
 
-## 5. Initialize the node
+## 4. Validator Node Setup
+
+Validators secure the network and participate in consensus. Testnet Phase III is permissioned, so follow the whitelisting steps.
+
+### Hardware & Software Requirements
+
+| Resource       | Minimum       | Recommended |
+| -------------- | ------------- | ----------- |
+| CPU            | 4 cores       | 8 cores     |
+| Memory         | 8 GB RAM      | 16 GB RAM   |
+| Storage        | 200 GB SSD    | 500 GB SSD  |
+| OS             | Ubuntu 20.04+ | —           |
+| Docker         | >= 20.10.0    | —           |
+| Docker Compose | >= 1.29.0     | —           |
+| Git            | Latest        | —           |
+
+**Required Ports:** `26657`, `26656`, `8545`, `8546`, `1317`, `9090`, `6065` (metrics)
+
+> Ensure these ports are open and reachable from the network as required.
+
+### Step-by-step
+
+1. **Download & extract configuration files**
 
 ```bash
-cysicd config keyring-backend file
-cysicd config chain-id cysic-mainnet
-cysicd init "<your-moniker>"
+mkdir -p /data && cd /data
+wget https://statics.prover.xyz/testnet_node.tar.gz
+tar -zxvf testnet_node.tar.gz
 ```
 
-This creates `~/.cysicd` (config and data).
-
----
-
-## 6. Obtain genesis & peers
-
-Place the correct `genesis.json` in the config folder. If you have an official genesis file, copy it to `~/.cysicd/config/genesis.json`.
-
-Configure peers/persistent\_peers in `~/.cysicd/config/config.toml` and `~/.cysicd/config/addrbook.json` with known good peers (use trusted peer list from the project).
-
----
-
-## 7. Fast sync options (statesync / snapshot)
-
-To avoid months of syncing, use statesync or download a snapshot (if project provides):
-
-**Statesync example:** edit `~/.cysicd/config/config.toml` and set `enable`/`rpc_servers`/`trust_hash`/`trust_height` per network instructions.
-
-**Snapshot:** stop node, extract snapshot to `~/.cysicd/data`, then restart.
-
----
-
-## 8. Run the node (manual)
+2. **Download data snapshot**
 
 ```bash
-cysicd start 2>&1 | tee ~/cysicd.log
-# or run in background
-nohup cysicd start &
+wget https://statics.prover.xyz/data.tar.gz
+rm -rf node/cysicmintd/data
+tar -zxvf data.tar.gz -C node/cysicmintd
 ```
 
-Check logs:
+3. **Pull Docker images**
 
 ```bash
-tail -f ~/.cysicd/logs/node.log
-journalctl -u cysicd.service -f
+docker-compose pull
 ```
 
----
+4. **Configure & start node**
 
-## 9. Create wallet / keys
+* Modify `docker-compose.yml` as needed (volumes, ports, env vars).
+
+**IMPORTANT:** Share your node exit IP with the Cysic team for whitelisting.
+
+Start the node:
 
 ```bash
-cysicd keys add walletname
-# backup the mnemonic securely
+docker-compose up -d node
+docker-compose logs -f node
 ```
 
----
-
-## 10. Run as systemd service
-
-Create `/etc/systemd/system/cysicd.service` with:
-
-```ini
-[Unit]
-Description=Cysic Daemon
-After=network-online.target
-
-[Service]
-User=%u
-ExecStart=/usr/local/bin/cysicd start
-Restart=on-failure
-RestartSec=5
-LimitNOFILE=65536
-Environment="HOME=/home/youruser"
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Reload & enable:
+5. **Verify node status**
 
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl enable cysicd
-sudo systemctl start cysicd
-sudo systemctl status cysicd
+curl http://localhost:26657/status
+curl http://localhost:26657/abci_info
 ```
 
-Replace `/usr/local/bin/cysicd` and `youruser` with actual paths/user.
-
----
-
-## 11. Become a validator (basic steps)
-
-1. Ensure your node is fully synced and has enough bonded tokens.
-2. Create a validator transaction:
+6. **Generate & backup validator key**
 
 ```bash
-cysicd tx staking create-validator \
-  --amount 1000000cysic \
-  --pubkey "$(cysicd tendermint show-validator)" \
-  --moniker "<your-moniker>" \
-  --chain-id cysic-mainnet \
-  --from walletname
+docker exec -it node bash
+./cysicmintd keys add validator-xxx --home ./cysicmint --keyring-backend test
+# Write down your mnemonic securely!
+# Obtain node ID and public key:
+./cysicmintd tendermint show-node-id --home ./cysicmint --keyring-backend test
+./cysicmintd tendermint show-validator --home ./cysicmint --keyring-backend test
+# Export private key:
+./cysicmintd keys export validator-xxx --home ./cysicmint --keyring-backend test
 ```
 
-3. Broadcast and wait for inclusion.
+7. **Stake & create validator**
 
----
-
-## 12. Common commands
+* Acquire testnet staking tokens from the Cysic team.
 
 ```bash
-# status
-cysicd status
-# query sync
-cysicd status 2>&1 | jq .SyncInfo
-# show peers
-cysicd tendermint show-peer
-# show validator key
-cysicd tendermint show-validator
-# wallet balance
-cysicd query bank balances <address>
+./cysicmintd tx staking create-validator \
+  --amount=10000000000000000000CGT \
+  --moniker="your-validator-name" \
+  --details="your-validator-description" \
+  --chain-id cysicmint_9001-1 \
+  --commission-rate="0.05" \
+  --commission-max-rate="0.20" \
+  --commission-max-change-rate="0.01" \
+  --min-self-delegation=1000000000000000000 \
+  --pubkey=$(./cysicmintd tendermint show-validator --home ./cysicmint) \
+  --from validator-xxx \
+  --home=./cysicmint \
+  --keyring-backend test \
+  --gas auto \
+  --gas-adjustment 1.2 \
+  --gas-prices=300000CYS \
+  --yes
 ```
 
----
+8. **Delegate & monitor**
 
-## 13. Troubleshooting
-
-* **Node not syncing**: check peers, RPC endpoints, time drift (use `ntp`), and disk IO.
-* **High CPU / disk**: enable pruning, reduce cache in `config.toml`, or increase hardware.
-* **State mismatch on restart**: try `unsafe_reset_all` **only** if you have a snapshot or state to restore.
-
-```bash
-cysicd unsafe-reset-all --keep-addr-book
-```
+* Delegate additional tokens if required and monitor health endpoints, logs, and sync status.
 
 ---
 
-## 14. Backups & upgrades
+## 5. Troubleshooting & Maintenance
 
-* Backup `~/.cysicd/config/` and `~/.cysicd/data/priv_validator_state.json` regularly.
-* For upgrades: follow on-chain upgrade instructions; stop service, replace binary, restart.
-
----
-
-## 15. Security best-practices
-
-* Keep mnemonic and `priv_validator_key.json` offline/backed-up.
-* Use firewall to allow only necessary ports (p2p, rpc if needed) and restrict admin access.
-* Run node under a non-root user.
+* **Sync issues:** Check internet connectivity, firewall/ports, and configuration. Resync using snapshots if necessary.
+* **Not earning/staking rewards:** Confirm active set membership, token balance, and that you are not jailed.
+* **Docker/container failures:** Review `docker-compose logs` and container logs; verify ports and resource limits.
+* **Emergency recovery:** Keep regular backups of keys and data; if needed, restore from snapshot and re-register with the Cysic team.
 
 ---
 
-## 16. Monitoring & alerts
+##
 
-* Use Prometheus + Grafana if exporters are available.
-* Simple alerts: monitor process uptime (`systemd`), disk usage, and peers.
-
----
-
-## 17. Final tips
-
-* Start with a testnet before mainnet.
-* Join project channels to get trusted peers and snapshots.
-* Keep binaries and Go up to date, and always read release notes before upgrading.
+Written by **Rachit Yadav**.
 
 ---
