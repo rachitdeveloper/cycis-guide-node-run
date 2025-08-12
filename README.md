@@ -13,7 +13,7 @@
 3. [Verifier Node Setup](#verifier-node-setup)
 4. [Validator Node Setup](#validator-node-setup)
 5. [Troubleshooting & Maintenance](#troubleshooting--maintenance)
-6. [Credits](#credits)
+
 
 ---
 
